@@ -15,7 +15,7 @@ setup(
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     packages=find_packages(),
-    url="https://github.com/heikoengel/pyPCIe",
+    url="https://github.com/augierg/pyPCIe",
     install_requires=[],
     keywords=['python', 'pcie'],
     classifiers= [

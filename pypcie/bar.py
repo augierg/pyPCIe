@@ -16,9 +16,12 @@ class Bar(object):
         self.__stat = os.stat(filename)
         fd = os.open(filename, os.O_RDWR)
         self.__map = mmap(fd, 0, prot=PROT_READ | PROT_WRITE)
+        self.__mv = memoryview(self.__map)
         os.close(fd)
 
     def __del__(self):
+        if self.__mv is not None:
+            self.__mv.release()
         if self.__map is not None:
             self.__map.close()
 
@@ -38,12 +41,11 @@ class Bar(object):
 
         :param int offset: BAR byte offset to read from.
         :returns: Double word read from the given BAR offset.
-        :rtype: double word / 32 bit unsigned long / int
+        :rtype: double word / 32 bit unsigned int
 
         """
         self.__check_offset(offset)
-        reg = self.__map[offset:offset+4]
-        return unpack("<L", reg)[0]
+        return self.__mv.cast('I')[offset//4]
 
     def write(self, offset: int, data: int):
         """ Write a 32 bit / double word value to offset.
@@ -52,10 +54,8 @@ class Bar(object):
         :param int data: double word to write to the given BAR offset.
         """
         self.__check_offset(offset)
-        self.__map.seek(offset)
-        reg = pack("<L", data)
         # write to map. no ret. check: ValueError/TypeError is raised on error
-        self.__map.write(reg)
+        self.__mv.cast('I')[offset//4] = data
         # Flush current page for immediate update.
         page_offset = offset & (~(PAGESIZE - 1) & 0xffffffff)
         self.__map.flush(page_offset, PAGESIZE)
